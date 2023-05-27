@@ -66,19 +66,30 @@ class _PageSearchBooksState extends State<PageSearchBooks> {
           const SizedBox(
             height: 10.0,
           ),
-          Container(
-              padding: const EdgeInsets.all(1),
-              child: Container(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) {
-                      return PageListBooks(text: _controller.text);
-                    }));
-                  },
-                  child: const Text("SEARCH", style: TextStyle(fontSize: 18)),
-                ),
-              )),
+          ElevatedButton(
+            onPressed: () {
+              if (_controller.text.isNotEmpty) {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return PageListBooks(text: _controller.text);
+                }));
+              } else {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Empty Input'),
+                    content: const Text('Please enter a book title, ISBN, or author.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+            child: const Text("SEARCH", style: TextStyle(fontSize: 18)),
+          ),
         ]),
       ),
     );

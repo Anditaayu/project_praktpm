@@ -30,6 +30,7 @@ class Books {
   final String? authors;
   final String? image;
   final String? url;
+  bool isFavorite; // Added isFavorite property
 
   Books({
     this.id,
@@ -38,6 +39,7 @@ class Books {
     this.authors,
     this.image,
     this.url,
+    this.isFavorite = false,
   });
 
   Books.fromJson(Map<String, dynamic> json)
@@ -46,7 +48,8 @@ class Books {
         subtitle = json['subtitle'] as String?,
         authors = json['authors'] as String?,
         image = json['image'] as String?,
-        url = json['url'] as String?;
+        url = json['url'] as String?,
+        isFavorite = false;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -56,4 +59,11 @@ class Books {
         'image': image,
         'url': url
       };
+
+  @override
+  @override
+  int get hashCode => id?.hashCode ?? 0;
+
+  @override
+  bool operator ==(Object other) => other is Books && other.id == id;
 }

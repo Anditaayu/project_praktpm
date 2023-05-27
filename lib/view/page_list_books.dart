@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:project_tpm/view/page_detail_books.dart';
 import '../controller/api_data_source.dart';
 import '../model/books_list.dart';
+import 'package:provider/provider.dart';
+import 'favorite_page.dart';
+
 
 class PageListBooks extends StatefulWidget {
   final String text;
@@ -12,29 +15,57 @@ class PageListBooks extends StatefulWidget {
 }
 
 class _PageListBooksState extends State<PageListBooks> {
+  late List<Books> booksList;
+  bool _isNotFound = false;
+
+  @override
+  void initState() {
+    super.initState();
+    booksList = [];
+    _searchBooks();
+  }
+
+  void _searchBooks() async {
+    try {
+      var bookModel = await ApiDataSource.instance.loadListBook(widget.text);
+      setState(() {
+        var bookList = BookList.fromJson(bookModel);
+        _isNotFound = bookList.books == null || bookList.books!.isEmpty;
+        booksList = bookList.books ?? [];
+      });
+    } catch (error) {
+      setState(() {
+        _isNotFound = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Book List"),
       ),
-      body: _buildListUsersBody(),
+      body: _isNotFound ? _buildNotFoundSection() : _buildListBooksBody(),
     );
   }
 
-  Widget _buildListUsersBody() {
+  Widget _buildNotFoundSection() {
+    return Center(
+      child: Text("No Books Found."),
+    );
+  }
+
+  Widget _buildListBooksBody() {
     return Container(
       child: FutureBuilder(
         future: ApiDataSource.instance.loadListBook(widget.text),
-        builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+        builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
           if (snapshot.hasError) {
-            // Jika data ada error maka akan ditampilkan hasil error
             return _buildErrorSection();
           }
           if (snapshot.hasData) {
-            // Jika data ada dan berhasil maka akan ditampilkan hasil datanya
-            BookList bookModel = BookList.fromJson(snapshot.data);
-            return _buildSuccessSection(bookModel);
+            return _buildSuccessSection();
           }
           return _buildLoadingSection();
         },
@@ -52,22 +83,25 @@ class _PageListBooksState extends State<PageListBooks> {
     );
   }
 
-  Widget _buildSuccessSection(BookList bookModel) {
+  Widget _buildSuccessSection() {
     return ListView.builder(
-      itemCount: bookModel.books!.length,
+      itemCount: booksList.length,
       itemBuilder: (BuildContext context, int index) {
-        return _buildItemUsers(bookModel.books![index]);
+        return _buildBookItem(index);
       },
     );
   }
 
-  Widget _buildItemUsers(Books book) {
+  Widget _buildBookItem(int index) {
+    Books book = booksList[index];
     return InkWell(
-      onTap: () => {
+      onTap: () {
         Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => PageDetailBooks(id: book.id!)))
+          context,
+          MaterialPageRoute(
+            builder: (context) => PageDetailBooks(id: book.id!),
+          ),
+        );
       },
       child: Card(
         child: Row(
@@ -80,13 +114,52 @@ class _PageListBooksState extends State<PageListBooks> {
             const SizedBox(
               width: 20,
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [Text(book.title!), Text(book.authors!)],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    book.title!,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(book.authors!),
+                ],
+              ),
             ),
+            const SizedBox(
+              width: 20,
+            ),
+            _AddButton(item: book,),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AddButton extends StatelessWidget {
+  final Books item;
+
+  const _AddButton({required this.item, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    var favoritePageModel = Provider.of<FavoritePageModel>(context);
+    var isFavorite = favoritePageModel.favoriteList.contains(item);
+
+    return IconButton(
+      icon: isFavorite
+          ? Icon(Icons.favorite, color: Colors.red)
+          : Icon(Icons.favorite_border, color: Colors.black12),
+      onPressed: () {
+        if (isFavorite) {
+          favoritePageModel.remove(item);
+        } else {
+          favoritePageModel.add(item);
+        }
+      },
     );
   }
 }
